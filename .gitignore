@@ -1,0 +1,9 @@
+# 파이썬·벡터DB 관련은 ai-core/.gitignore가 담당한다.
+# 여기는 OS·에디터가 만드는 것만 막는다.
+
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+.idea/
+*.swp

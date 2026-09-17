@@ -1,0 +1,11 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
+.pytest_cache/
+.ruff_cache/
+
+# 벡터DB 로컬 persist 디렉터리 (2주차부터)
+chroma/
+qdrant_storage/

@@ -1,0 +1,11 @@
+# 1주차: 계약 스키마 + mock 서버에 필요한 최소 구성.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.4
+pyyaml>=6.0
+
+# 2주차에 추가할 것 (지금 설치하지 않는다 — 설치 시간만 먹고 1주차 산출물과 무관)
+# langgraph
+# openai
+# chromadb  또는  qdrant-client

@@ -1,0 +1,62 @@
+# 성분 조합 주의 규칙.
+#
+# 뷰티 커뮤니티에 도는 "충돌" 정보는 상당수 근거가 약하거나 반박됐다. 그래서
+# severity / source / confidence를 데이터로 들고 응답에 그대로 노출한다.
+# confidence: low 인 규칙은 화면에서 단정적으로 보이지 않게 표기해야 한다.
+#
+# severity: avoid   = 같이 쓰지 않는 편이 낫다
+#           caution = 자극이 누적될 수 있으니 사용 방식을 조정하면 된다
+
+# 성분 키 -> 화면 표기 라벨. Caution.pairLabels가 여기서 나온다.
+labels:
+  retinol: 레티놀
+  aha: AHA
+  bha: BHA
+  vitamin_c: 비타민C
+  niacinamide: 나이아신아마이드
+  benzoyl_peroxide: 벤조일퍼옥사이드
+
+rules:
+  - id: retinol_aha
+    pair: [retinol, aha]
+    severity: caution
+    message: "같은 날 밤에 함께 쓰면 자극이 누적될 수 있어요. 번갈아 쓰는 걸 권해요."
+    source: "일반적 스킨케어 가이드라인"
+    confidence: medium
+
+  - id: retinol_bha
+    pair: [retinol, bha]
+    severity: caution
+    message: "둘 다 각질 주기에 영향을 줘서 같이 쓰면 건조하거나 따가울 수 있어요. 다른 날에 나눠 쓰는 걸 권해요."
+    source: "일반적 스킨케어 가이드라인"
+    confidence: medium
+
+  - id: retinol_benzoyl_peroxide
+    pair: [retinol, benzoyl_peroxide]
+    severity: avoid
+    message: "동시에 바르면 서로의 효과가 떨어질 수 있어요. 아침·저녁으로 나눠 쓰는 걸 권해요."
+    source: "일반적 스킨케어 가이드라인"
+    confidence: high
+
+  - id: aha_vitamin_c
+    pair: [aha, vitamin_c]
+    severity: caution
+    message: "둘 다 산성 제품이라 함께 쓰면 자극이 느껴질 수 있어요. 시간을 두고 쓰는 걸 권해요."
+    source: "일반적 스킨케어 가이드라인"
+    confidence: medium
+
+  # 아래 규칙은 근거가 약한 쪽에 속한다. 지워도 되지만, "확신도가 낮은 정보를
+  # 낮다고 표시해서 보여주는" 사례로 남겨둘 값어치가 있다.
+  - id: niacinamide_vitamin_c
+    pair: [niacinamide, vitamin_c]
+    severity: caution
+    message: "함께 쓰면 안 된다는 얘기가 있지만 근거가 약해요. 따갑게 느껴질 때만 시간을 나눠 쓰면 충분해요."
+    source: "오래된 고온 실험 조건에서 비롯된 통설 (현재는 반박되는 편)"
+    confidence: low
+
+  - id: retinol_vitamin_c
+    pair: [retinol, vitamin_c]
+    severity: caution
+    message: "같이 쓰면 예민해질 수 있어요. 비타민C는 아침, 레티놀은 밤으로 나누면 편해요."
+    source: "일반적 스킨케어 가이드라인"
+    confidence: low

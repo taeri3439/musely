@@ -1,0 +1,19 @@
+# Render Blueprint — mock 서버를 무료 티어에 배포한다.
+# 성미가 아무것도 설치하지 않고 URL만 받아서 쓰게 하는 것이 목적.
+#
+# 사용법: Render 대시보드에서 New > Blueprint > 이 레포 선택.
+#
+# 무료 티어 주의: 15분 유휴 후 스핀다운되고 다시 깨어나는 데 약 1분 걸린다.
+# 기획서 10절의 프론트 폴링 상한이 60초라서, 잠든 상태로 첫 요청을 던지면
+# 폴링 버그처럼 보인다. 개발 시작 전에 /health를 한 번 쳐서 깨울 것.
+
+services:
+  - type: web
+    name: musely-ai-core-mock
+    runtime: docker
+    plan: free
+    region: singapore # 한국에서 가장 가까운 리전
+    dockerfilePath: ./ai-core/Dockerfile
+    dockerContext: ./ai-core
+    healthCheckPath: /health
+    autoDeployTrigger: commit # 계약이 바뀌면 push만으로 반영된다

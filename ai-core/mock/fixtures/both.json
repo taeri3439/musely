@@ -1,0 +1,77 @@
+{
+  "summary": "조건에 딱 맞는 제품이 많지 않아서 카테고리 조건을 조금 완화해서 찾았어요. 기피 성분은 그대로 지켰고, 향수는 우디·머스크 계열에서 골랐어요.",
+  "cosmetic": [
+    {
+      "itemId": "p_001",
+      "name": "시카 수딩 토너",
+      "brand": "라보그린",
+      "category": "토너",
+      "score": 84.0,
+      "note": "알코올 무첨가에 진정 성분 위주라 트러블 고민에 맞을 수 있어요."
+    },
+    {
+      "itemId": "p_004",
+      "name": "판테놀 배리어 세럼",
+      "brand": "노트원",
+      "category": "세럼",
+      "score": 78.0,
+      "note": "카테고리를 넓혀 찾은 후보예요. 판테놀 중심이라 자극이 적은 편이에요."
+    },
+    {
+      "itemId": "p_007",
+      "name": "무향 수분 젤크림",
+      "brand": "플레인랩",
+      "category": "크림",
+      "score": 72.0,
+      "note": "향료를 넣지 않아 기피 성분 조건을 통과했어요."
+    }
+  ],
+  "fragrance": [
+    {
+      "itemId": "f_002",
+      "name": "우디 머스크 오드퍼퓸",
+      "brand": "메종노트",
+      "score": 79.0,
+      "note": "샌달우드와 화이트머스크가 중심이라 오피스에서 쓰기 좋은 잔잔한 무게감이에요.",
+      "notes": {
+        "family": "우디",
+        "top": ["베르가못"],
+        "heart": ["아이리스"],
+        "base": ["샌달우드", "화이트머스크"]
+      }
+    },
+    {
+      "itemId": "f_005",
+      "name": "세더 앤 스킨",
+      "brand": "아틀리에구",
+      "score": 73.5,
+      "note": "시더우드 기반에 머스크가 얇게 깔려서 선호하신 두 계열이 함께 들어 있어요.",
+      "notes": {
+        "family": "우디",
+        "top": ["핑크페퍼"],
+        "heart": ["시더우드"],
+        "base": ["머스크", "베티버"]
+      }
+    }
+  ],
+  "cautions": [
+    {
+      "pair": ["retinol", "aha"],
+      "pairLabels": ["레티놀", "AHA"],
+      "severity": "caution",
+      "message": "같은 날 밤에 함께 쓰면 자극이 누적될 수 있어요. 번갈아 쓰는 걸 권해요.",
+      "source": "일반적 스킨케어 가이드라인",
+      "confidence": "medium"
+    },
+    {
+      "pair": ["retinol", "benzoyl_peroxide"],
+      "pairLabels": ["레티놀", "벤조일퍼옥사이드"],
+      "severity": "avoid",
+      "message": "동시에 바르면 서로의 효과가 떨어질 수 있어요. 아침·저녁으로 나눠 쓰는 걸 권해요.",
+      "source": "일반적 스킨케어 가이드라인",
+      "confidence": "high"
+    }
+  ],
+  "relaxationLevel": 1,
+  "blockedBy": []
+}
