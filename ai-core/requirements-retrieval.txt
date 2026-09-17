@@ -5,3 +5,4 @@ google-genai>=1.0
 chromadb>=0.5
 certifi>=2024.0
 pip-system-certs>=4.0
+langgraph
