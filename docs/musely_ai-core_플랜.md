@@ -46,7 +46,7 @@ ai-core/
 ├─ app/
 │  ├─ main.py                 # FastAPI, job 엔드포인트
 │  ├─ jobs.py                 # JobStore, Job 상태 머신
-│  ├─ schemas.py              # Pydantic 계약 = 성미와의 약속
+│  ├─ schemas.py              # Pydantic 계약 = 백엔드와의 약속
 │  ├─ graph/
 │  │  ├─ state.py             # CurationState
 │  │  ├─ build.py             # 그래프 조립, 조건부 엣지
@@ -86,11 +86,15 @@ ai-core/
 ### 상태 머신
 
 ```
-PENDING ──► RUNNING ──┬──► DONE
-                      └──► FAILED (TIMEOUT | NO_CANDIDATES | LLM_ERROR | INTERNAL)
+PENDING ──► RUNNING ──┬──► DONE     (후보 0건도 여기로 온다)
+                      └──► FAILED  (TIMEOUT | LLM_ERROR | INTERNAL)
 ```
 
-`FAILED`일 때 **기계가 읽을 코드**를 줄 것. 사람이 읽는 문장만 주면 성미가 분기 처리를 못 한다.
+`FAILED`일 때 **기계가 읽을 코드**를 줄 것. 사람이 읽는 문장만 주면 백엔드가 분기 처리를 못 한다.
+
+**후보 0건은 `FAILED`가 아니다.** 시스템은 정상 동작했고 조건이 빡빡했을 뿐이다. `DONE` +
+빈 배열 + `blockedBy`(걸린 조건)로 주고, 프론트는 결과 화면의 빈 상태를 렌더링한다.
+`FAILED`로 주면 화면이 "문제가 생겼어요"로 잘못 분기한다.
 
 ```json
 {
@@ -103,6 +107,21 @@ PENDING ──► RUNNING ──┬──► DONE
 ```
 
 ### 계약 스키마 (1주차에 고정)
+
+> **확정판은 `ai-core/app/schemas.py`다.** 아래는 설계 당시의 초안이고, 구현하면서
+> 아래 다섯 가지가 바뀌었다. 문서와 코드가 어긋나면 코드가 맞다.
+>
+> 1. **와이어 포맷은 camelCase.** 내부는 snake_case를 쓰고 `CamelModel`이 변환한다.
+>    Jackson 기본값과 맞아서 백엔드가 `@JsonProperty`를 붙일 필요가 없다.
+> 2. **`steps[]`가 job 응답 최상위에 추가됐다.** 단계 표시는 RUNNING 중에 필요한데
+>    `result`는 DONE에서야 채워진다. `label`에 한글 문구까지 담아 내린다.
+> 3. **후보 0건은 `DONE` + 빈 배열 + `blockedBy`.** 위 상태 머신 설명 참고.
+> 4. **`Candidate.notes`(향수 노트 피라미드)와 `Candidate.category`가 추가됐다.**
+>    향수 카드가 탑/미들/베이스를 표시해야 하고, 화장품 카드는 부제에 카테고리를 쓴다.
+> 5. **`Caution.pairLabels`가 추가됐다.** `pair`는 규칙 키(`retinol`)라 화면에 그대로
+>    쓸 수 없다. 라벨은 `data/conflict_rules.yaml`의 `labels`에서 온다.
+>
+> `python -m scripts.check_contract`가 이 계약과 mock fixture의 정합성을 검사한다.
 
 ```python
 class OrchestrateRequest(BaseModel):
@@ -449,7 +468,7 @@ class Commentary(BaseModel):
 
 ## 11. mock 서버 — 1주차 최우선 산출물
 
-job API 구조에선 성미가 **로딩 UI와 폴링 로직을 개발하려면 "느린 mock"이 필요하다.**
+job API 구조에선 백엔드가 **로딩 UI와 폴링 로직을 개발하려면 "느린 mock"이 필요하다.**
 
 ```python
 @app.post("/jobs", status_code=202)
@@ -472,7 +491,7 @@ async def get(job_id: str):
     return {"jobId": job_id, "status": "DONE", "result": FIXTURE}
 ```
 
-`_mock_delay`와 `_mock_fail`을 열어두면 성미가 로딩·타임아웃·에러 UI를 전부 테스트할 수 있다. **1주차에 이것만 나와도 성미는 3주차까지 안 막힌다.**
+`_mock_delay`와 `_mock_fail`을 열어두면 백엔드가 로딩·타임아웃·에러 UI를 전부 테스트할 수 있다. **1주차에 이것만 나와도 백엔드는 3주차까지 안 막힌다.**
 
 ---
 

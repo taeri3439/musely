@@ -1,7 +1,7 @@
 """계약 스키마와 mock fixture가 서로 맞는지 확인한다.
 
 서버를 띄우지 않고 돌아가므로 fixture나 규칙 파일을 손볼 때마다 먼저 이걸 돌리면 된다.
-출력된 JSON이 성미가 실제로 받는 모양(camelCase)이다.
+출력된 JSON이 백엔드가 실제로 받는 모양(camelCase)이다.
 
 실행:
     python -m scripts.check_contract
@@ -81,7 +81,7 @@ def check_fixtures(labels: dict[str, str]) -> list[str]:
 
 
 def print_sample_wire_format() -> None:
-    """성미에게 보여줄 실제 응답 모양."""
+    """백엔드에게 보여줄 실제 응답 모양."""
     request = OrchestrateRequest(
         profile_id="pf_1",
         track="cosmetic",

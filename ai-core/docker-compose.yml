@@ -1,4 +1,4 @@
-# ai-core 단독 실행용. 성미가 파이썬을 세팅하지 않고 mock을 띄우기 위한 것.
+# ai-core 단독 실행용. 백엔드가 파이썬을 세팅하지 않고 mock을 띄우기 위한 것.
 #
 #   docker compose up --build
 #   -> http://localhost:8000/docs
@@ -28,7 +28,7 @@ services:
     #   - .env
 
     # 나연 로컬에서 코드 수정 즉시 반영하고 싶을 때만 아래를 열 것.
-    # 성미는 열지 않는다(이미지 안의 코드로 그냥 돌리면 된다).
+    # 백엔드는 열지 않는다(이미지 안의 코드로 그냥 돌리면 된다).
     # volumes:
     #   - ./app:/app/app
     #   - ./mock:/app/mock
