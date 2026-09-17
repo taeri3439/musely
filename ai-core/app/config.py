@@ -31,18 +31,27 @@ class Settings(BaseSettings):
 
     # 아래는 2주차부터 쓴다. mock 서버는 읽지 않는다.
     openai_api_key: str | None = None
+    gemini_api_key: str | None = None
+    anthropic_api_key: str | None = None
     llm_model: str = "gpt-4o-mini"
-    embedding_model: str = "text-embedding-3-small"
+
+    # 임베딩. Anthropic은 임베딩 API가 없어서 선택지에 없다.
+    embedding_provider: Literal["openai", "gemini"] = "gemini"
+    embedding_model: str = "gemini-embedding-001"
 
     vector_store: Literal["chroma", "qdrant"] = "chroma"
     chroma_path: str = "./chroma"
     qdrant_url: str = "http://localhost:6333"
 
     def require_openai_key(self) -> str:
-        """LLM을 호출하는 지점에서만 부른다. 키가 없어도 mock은 떠야 하기 때문."""
         if not self.openai_api_key:
             raise RuntimeError("OPENAI_API_KEY가 비어 있다. ai-core/.env를 확인할 것.")
         return self.openai_api_key
+
+    def require_gemini_key(self) -> str:
+        if not self.gemini_api_key:
+            raise RuntimeError("GEMINI_API_KEY가 비어 있다. ai-core/.env를 확인할 것.")
+        return self.gemini_api_key
 
 
 @lru_cache

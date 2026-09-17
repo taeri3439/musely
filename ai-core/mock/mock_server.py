@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import AliasChoices, ConfigDict, Field
 
 from app.schemas import (
@@ -154,6 +155,11 @@ def build_steps(job: MockJob, elapsed: float, *, finished: bool) -> list[Step]:
             )
         )
     return steps
+
+
+@app.get("/", include_in_schema=False)
+async def root() -> RedirectResponse:
+    return RedirectResponse("/docs")
 
 
 @app.post("/jobs", status_code=202, response_model=JobAcceptedResponse)

@@ -1,0 +1,7 @@
+# 로컬 인덱싱·검색용. mock/Render 이미지에는 넣지 않는다.
+#   pip install -r requirements-retrieval.txt
+openai>=1.40
+google-genai>=1.0
+chromadb>=0.5
+certifi>=2024.0
+pip-system-certs>=4.0

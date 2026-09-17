@@ -47,6 +47,30 @@ docker-compose의 다른 컨테이너)에서는 붙지 못한다.
 `python -m scripts.check_contract`는 서버 없이 돌아가고 `.env` 로딩, 충돌 규칙,
 fixture ↔ 계약 정합성을 한 번에 확인한다. fixture를 손볼 때마다 먼저 돌릴 것.
 
+## 로컬 인덱싱 (Render mock과 무관)
+
+실제 검색은 로컬에서만 돌린다. Render의 mock은 그대로 둔다.
+
+```bat
+pip install -r requirements-retrieval.txt
+python -m app.retrieval.index
+python -m scripts.check_retrieval
+```
+
+임베딩은 Gemini(`gemini-embedding-001`)를 쓴다. Anthropic은 임베딩 API가 없어서
+인덱싱에 쓸 수 없고, 나중에 설명 생성 LLM으로만 쓴다. `.env`에 아래가 있어야 한다.
+
+```
+EMBEDDING_PROVIDER=gemini
+EMBEDDING_MODEL=gemini-embedding-001
+GEMINI_API_KEY=...
+```
+
+`check_retrieval`의 통과 기준: 알코올 기피로 검색했을 때 세틸알코올이 들어간 `p_007`은
+남고, 에탄올이 들어간 `p_002`는 빠진다.
+
+---
+
 ## 백엔드용 시작 가이드
 
 **백엔드가 설치할 건 아무것도 없다.** 배포된 mock URL을 받아서 설정에 넣으면 끝이다.
