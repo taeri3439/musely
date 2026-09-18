@@ -29,6 +29,7 @@ def _hit_to_candidate(hit) -> dict[str, Any]:
         "score": hit.score,
         "category": product.get("category"),
         "actives": list(product.get("actives") or []),
+        "key_ingredients": list(product.get("key_ingredients") or []),
         "note": f"{category} 중에서 기피 조건을 통과한 제품이에요." if category else "기피 조건을 통과한 제품이에요.",
     }
 
