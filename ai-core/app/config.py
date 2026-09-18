@@ -33,7 +33,6 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
     anthropic_api_key: str | None = None
-    llm_model: str = "gpt-4o-mini"
 
     # 임베딩. Anthropic은 임베딩 API가 없어서 선택지에 없다.
     embedding_provider: Literal["openai", "gemini"] = "gemini"
@@ -42,6 +41,11 @@ class Settings(BaseSettings):
     vector_store: Literal["chroma", "qdrant"] = "chroma"
     chroma_path: str = "./chroma"
     qdrant_url: str = "http://localhost:6333"
+
+    llm_provider: Literal["anthropic"] = "anthropic"
+    llm_model: str = "claude-haiku-4-5-20251001"
+
+    
 
     def require_openai_key(self) -> str:
         if not self.openai_api_key:
@@ -52,6 +56,11 @@ class Settings(BaseSettings):
         if not self.gemini_api_key:
             raise RuntimeError("GEMINI_API_KEY가 비어 있다. ai-core/.env를 확인할 것.")
         return self.gemini_api_key
+
+    def require_anthropic_key(self) -> str:
+        if not self.anthropic_api_key:
+            raise RuntimeError("ANTHROPIC_API_KEY가 비어 있다. ai-core/.env를 확인할 것.")
+        return self.anthropic_api_key
 
 
 @lru_cache
