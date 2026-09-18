@@ -69,6 +69,14 @@ GEMINI_API_KEY=...
 `check_retrieval`의 통과 기준: 알코올 기피로 검색했을 때 세틸알코올이 들어간 `p_007`은
 남고, 에탄올이 들어간 `p_002`는 빠진다.
 
+화장품 그래프(검색 → 충돌 검수 → 템플릿 설명)는 인덱스가 있는 뒤:
+
+```bat
+python -m scripts.check_graph
+```
+
+Render mock과 로컬 job API는 아직 연결하지 않는다.
+
 ---
 
 ## 백엔드용 시작 가이드
