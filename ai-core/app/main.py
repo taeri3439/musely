@@ -13,6 +13,7 @@ from app.jobs import _now, steps_from_trace, store
 from app.schemas import (
     Candidate,
     Caution,
+    FragranceNotes,
     ErrorCode,
     ErrorDetail,
     HealthResponse,
@@ -96,7 +97,11 @@ async def run_job(job_id: str, req: OrchestrateRequest) -> None:
     try:
         state = await asyncio.wait_for(execute(req), timeout=settings.job_timeout_seconds)
         empty = not state["candidates"]
-        job.steps = steps_from_trace(state.get("trace") or [], empty=empty)
+        job.steps = steps_from_trace(
+            state.get("trace") or [],
+            empty=empty,
+            track=req.track,
+        )
         # profile은 항상 done
         if job.steps:
             job.steps[0] = Step(
@@ -104,7 +109,7 @@ async def run_job(job_id: str, req: OrchestrateRequest) -> None:
                 label=STEP_LABELS[StepKey.PROFILE],
                 status="done",
             )
-        job.result = to_result(state)
+        job.result = to_result(state, track=req.track)
         job.status = JobStatus.DONE
     except asyncio.TimeoutError:
         job.status = JobStatus.FAILED
@@ -119,14 +124,20 @@ async def run_job(job_id: str, req: OrchestrateRequest) -> None:
 
 async def execute(req: OrchestrateRequest) -> dict:
     if req.track == "fragrance":
-        return {
-            "candidates": [],
-            "cautions": [],
-            "summary": "향수 트랙은 아직 없습니다.",
-            "relaxation_level": 0,
-            "blocked_by": ["향수 트랙 미구현"],
-            "trace": [],
+        profile = {
+            "preferred_scent_families": req.preferred_scent_families,
+            "occasion": req.occasion,
         }
+        return await graph.ainvoke(empty_state(profile, "fragrance"))
+    if req.track == "both":
+        profile = {
+            "skin_type": req.skin_type,
+            "concerns": req.concerns,
+            "avoid_ingredients": req.avoid_ingredients,
+            "current_actives": req.current_actives,
+            "category": req.category,
+        }
+        return await graph.ainvoke(empty_state(profile, "cosmetic"))
     profile = {
         "skin_type": req.skin_type,
         "concerns": req.concerns,
@@ -137,22 +148,39 @@ async def execute(req: OrchestrateRequest) -> dict:
     return await graph.ainvoke(empty_state(profile, "cosmetic"))
 
 
-def to_result(state: dict) -> OrchestrateResult:
+def _candidate_from_dict(c: dict, *, fragrance: bool) -> Candidate:
+    notes_raw = c.get("notes")
+    notes = None
+    if fragrance and isinstance(notes_raw, dict):
+        notes = FragranceNotes.model_validate(notes_raw)
+    return Candidate(
+        item_id=c["item_id"],
+        name=c["name"],
+        brand=c["brand"],
+        score=c["score"],
+        note=c["note"],
+        category=c.get("category") if not fragrance else None,
+        notes=notes,
+    )
+
+
+def to_result(state: dict, *, track: str = "cosmetic") -> OrchestrateResult:
+    candidates = state.get("candidates") or []
+    is_fragrance = track == "fragrance"
     cosmetic = [
-        Candidate(
-            item_id=c["item_id"],
-            name=c["name"],
-            brand=c["brand"],
-            score=c["score"],
-            note=c["note"],
-            category=c.get("category"),
-        )
-        for c in state.get("candidates") or []
+        _candidate_from_dict(c, fragrance=False)
+        for c in candidates
+        if not is_fragrance
+    ]
+    fragrance = [
+        _candidate_from_dict(c, fragrance=True)
+        for c in candidates
+        if is_fragrance
     ]
     return OrchestrateResult(
         summary=state.get("summary") or "조건에 맞는 제품을 찾지 못했어요.",
         cosmetic=cosmetic,
-        fragrance=[],
+        fragrance=fragrance,
         cautions=[Caution.model_validate(c) for c in state.get("cautions") or []],
         relaxation_level=state.get("relaxation_level") or 0,
         blocked_by=state.get("blocked_by") or [],

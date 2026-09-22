@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.config import get_settings
-from app.schemas import STEP_LABELS, JobStatus, OrchestrateResult, Step, StepKey
+from app.schemas import STEP_LABELS, JobStatus, OrchestrateResult, Step, StepKey, Track
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -48,10 +48,17 @@ class JobStore:
             del self._jobs[key]
 
 
-def steps_from_trace(trace: list[dict[str, Any]], *, empty: bool) -> list[Step]:
+def steps_from_trace(
+    trace: list[dict[str, Any]],
+    *,
+    empty: bool,
+    track: Track = "cosmetic",
+) -> list[Step]:
     """내부 노드명 → 화면 steps. commentary는 0건이면 skipped."""
     nodes = {row["node"] for row in trace}
     elapsed = {row["node"]: row.get("elapsed_ms") for row in trace}
+    search_node = "scent_matcher" if track == "fragrance" else "ingredient_matcher"
+    skip_conflict = track == "fragrance"
 
     def one(key: StepKey, node: str | None, *, skipped: bool = False) -> Step:
         if skipped:
@@ -68,9 +75,9 @@ def steps_from_trace(trace: list[dict[str, Any]], *, empty: bool) -> list[Step]:
         )
 
     return [
-        one(StepKey.PROFILE, None),  # 접수되면 끝난 것으로 봐도 됨. RUNNING이면 done으로 바꿔도 됨
-        one(StepKey.SEARCH, "ingredient_matcher"),
-        one(StepKey.CONFLICT, "conflict_checker"),
+        one(StepKey.PROFILE, None),
+        one(StepKey.SEARCH, search_node),
+        one(StepKey.CONFLICT, "conflict_checker", skipped=skip_conflict),
         one(StepKey.COMMENTARY, "commentary", skipped=empty),
     ]
 

@@ -18,7 +18,10 @@ from app.config import BASE_DIR, Settings, get_settings
 from app.ssl_setup import configure_ssl
 from app.retrieval.filters import (
     blocked_by,
+    build_fragrance_query_text,
     build_query_text,
+    fragrance_blocked_by,
+    fragrance_relaxation_chain,
     post_filter,
     relaxation_chain,
 )
@@ -279,6 +282,47 @@ class FragranceStore:
 
     def count(self) -> int:
         return self.collection().count()
+
+    def search(
+        self,
+        *,
+        preferred_scent_families: list[str] | None = None,
+        occasion: str | None = None,
+        k: int = 5,
+    ) -> SearchResult:
+        families = preferred_scent_families or []
+        query = build_fragrance_query_text(
+            preferred_families=families,
+            occasion=occasion,
+        )
+        query_emb = self._embed.embed([query], task="RETRIEVAL_QUERY")[0]
+        col = self.collection()
+        fetch = min(max(k * 4, 12), max(self.count(), 1))
+
+        for level, where in fragrance_relaxation_chain(families):
+            kwargs: dict[str, Any] = {
+                "query_embeddings": [query_emb],
+                "n_results": fetch,
+            }
+            if where:
+                kwargs["where"] = where
+            raw = col.query(**kwargs)
+            ids = (raw.get("ids") or [[]])[0]
+            distances = (raw.get("distances") or [[]])[0]
+            rows = [self.catalog[i] for i in ids if i in self.catalog]
+            if rows:
+                id_to_dist = {i: d for i, d in zip(ids, distances)}
+                hits = [
+                    SearchHit(product=r, score=_distance_to_score(id_to_dist[r["item_id"]]))
+                    for r in rows[:k]
+                ]
+                return SearchResult(hits=hits, relaxation_level=level, blocked_by=[])
+
+        return SearchResult(
+            hits=[],
+            relaxation_level=2,
+            blocked_by=fragrance_blocked_by(families),
+        )
 
 
 def _distance_to_score(distance: float) -> float:

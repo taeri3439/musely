@@ -135,3 +135,60 @@ def blocked_by(avoid_ingredients: list[str], category: str | None) -> list[str]:
     if category:
         reasons.append(f"카테고리: {category}")
     return reasons
+
+
+# --------------------------------------------------------------------------
+# 향수 — 선호 계열만 하드 필터, occasion·분위기는 벡터 쿼리(소프트)
+# --------------------------------------------------------------------------
+
+
+def normalize_families(raw: list[str]) -> list[str]:
+    seen: list[str] = []
+    for item in raw:
+        token = item.strip()
+        if token and token not in seen:
+            seen.append(token)
+    return seen
+
+
+def build_fragrance_where(families: list[str]) -> dict[str, Any] | None:
+    families = normalize_families(families)
+    if not families:
+        return None
+    if len(families) == 1:
+        return {"note_family": families[0]}
+    return {"note_family": {"$in": families}}
+
+
+def fragrance_relaxation_chain(
+    preferred_families: list[str],
+) -> list[tuple[int, dict[str, Any] | None]]:
+    """(level, where). 선호 계열만 풀고 다른 하드 제약은 없다."""
+    families = normalize_families(preferred_families)
+    if not families:
+        return [(0, None)]
+    return [
+        (0, build_fragrance_where(families)),
+        (1, None),
+    ]
+
+
+def build_fragrance_query_text(
+    *,
+    preferred_families: list[str],
+    occasion: str | None,
+) -> str:
+    parts: list[str] = []
+    families = normalize_families(preferred_families)
+    if families:
+        parts.append("선호 계열: " + ", ".join(families))
+    if occasion:
+        parts.append(f"사용 상황: {occasion}")
+    return " / ".join(parts) if parts else "향수 추천"
+
+
+def fragrance_blocked_by(preferred_families: list[str]) -> list[str]:
+    families = normalize_families(preferred_families)
+    if families:
+        return ["선호 계열: " + ", ".join(families)]
+    return ["선호 계열: (미입력)"]
