@@ -25,8 +25,13 @@ from app.retrieval.filters import (
 
 configure_ssl()
 
-COLLECTION = "cosmetics"
+COLLECTION_COSMETICS = "cosmetics"
+COLLECTION_FRAGRANCES = "fragrances"
 PRODUCTS_PATH = BASE_DIR / "data" / "products.jsonl"
+FRAGRANCES_PATH = BASE_DIR / "data" / "fragrances.jsonl"
+
+# CosmeticStore.collection() 호환
+COLLECTION = COLLECTION_COSMETICS
 
 
 @dataclass
@@ -48,7 +53,7 @@ def chroma_dir(settings: Settings | None = None) -> Path:
     return path if path.is_absolute() else BASE_DIR / path
 
 
-def load_catalog(path: Path = PRODUCTS_PATH) -> dict[str, dict[str, Any]]:
+def load_jsonl_catalog(path: Path) -> dict[str, dict[str, Any]]:
     catalog: dict[str, dict[str, Any]] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -56,6 +61,14 @@ def load_catalog(path: Path = PRODUCTS_PATH) -> dict[str, dict[str, Any]]:
         row = json.loads(line)
         catalog[row["item_id"]] = row
     return catalog
+
+
+def load_catalog(path: Path = PRODUCTS_PATH) -> dict[str, dict[str, Any]]:
+    return load_jsonl_catalog(path)
+
+
+def load_fragrance_catalog(path: Path = FRAGRANCES_PATH) -> dict[str, dict[str, Any]]:
+    return load_jsonl_catalog(path)
 
 
 def embed_text(product: dict[str, Any]) -> str:
@@ -80,19 +93,41 @@ def metadata_of(product: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-class CosmeticStore:
-    def __init__(self, settings: Settings | None = None) -> None:
-        self.settings = settings or get_settings()
-        if self.settings.embedding_provider not in ("openai", "gemini"):
+def embed_fragrance_text(fragrance: dict[str, Any]) -> str:
+    top = ", ".join(fragrance.get("top") or [])
+    heart = ", ".join(fragrance.get("heart") or [])
+    base = ", ".join(fragrance.get("base") or [])
+    occasions = ", ".join(fragrance.get("occasions") or [])
+    return (
+        f"{fragrance['name']} / {fragrance['brand']}\n"
+        f"계열: {fragrance.get('note_family', '')}\n"
+        f"탑: {top} / 미들: {heart} / 베이스: {base}\n"
+        f"상황: {occasions}\n"
+        f"{fragrance.get('description', '')}"
+    )
+
+
+def fragrance_metadata_of(fragrance: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "name": fragrance["name"],
+        "brand": fragrance["brand"],
+        "note_family": fragrance["note_family"],
+    }
+
+
+class _EmbeddingClient:
+    """화장품·향수 스토어가 공유하는 임베딩 클라이언트."""
+
+    def __init__(self, settings: Settings) -> None:
+        if settings.embedding_provider not in ("openai", "gemini"):
             raise RuntimeError(
                 "Anthropic은 임베딩 API가 없다. EMBEDDING_PROVIDER는 openai 또는 gemini."
             )
-        self.catalog = load_catalog()
-        self._client = chromadb.PersistentClient(path=str(chroma_dir(self.settings)))
+        self.settings = settings
         self._openai: OpenAI | None = None
         self._gemini = None
-        if self.settings.embedding_provider == "openai":
-            self._openai = OpenAI(api_key=self.settings.require_openai_key())
+        if settings.embedding_provider == "openai":
+            self._openai = OpenAI(api_key=settings.require_openai_key())
         else:
             from google import genai
             from google.genai import types
@@ -100,17 +135,11 @@ class CosmeticStore:
             import certifi
 
             self._gemini = genai.Client(
-                api_key=self.settings.require_gemini_key(),
+                api_key=settings.require_gemini_key(),
                 http_options=types.HttpOptions(
                     client_args={"verify": certifi.where()},
                 ),
             )
-
-    def collection(self):
-        return self._client.get_or_create_collection(
-            name=COLLECTION,
-            metadata={"hnsw:space": "cosine"},
-        )
 
     def embed(self, texts: list[str], *, task: str = "RETRIEVAL_DOCUMENT") -> list[list[float]]:
         if self.settings.embedding_provider == "openai":
@@ -136,10 +165,27 @@ class CosmeticStore:
             raise RuntimeError("Gemini 임베딩 응답이 비어 있다.")
         return [list(item.values or []) for item in resp.embeddings]
 
+
+class CosmeticStore:
+    def __init__(self, settings: Settings | None = None) -> None:
+        self.settings = settings or get_settings()
+        self.catalog = load_catalog()
+        self._client = chromadb.PersistentClient(path=str(chroma_dir(self.settings)))
+        self._embed = _EmbeddingClient(self.settings)
+
+    def collection(self):
+        return self._client.get_or_create_collection(
+            name=COLLECTION_COSMETICS,
+            metadata={"hnsw:space": "cosine"},
+        )
+
+    def embed(self, texts: list[str], *, task: str = "RETRIEVAL_DOCUMENT") -> list[list[float]]:
+        return self._embed.embed(texts, task=task)
+
     def rebuild(self) -> int:
         """카탈로그 전체를 다시 넣는다. 12~150건 규모라 증분 업데이트보다 이게 안전하다."""
         try:
-            self._client.delete_collection(COLLECTION)
+            self._client.delete_collection(COLLECTION_COSMETICS)
         except Exception:  # noqa: BLE001 — 없으면 그냥 만들면 된다
             pass
         col = self.collection()
@@ -198,6 +244,41 @@ class CosmeticStore:
             relaxation_level=2,
             blocked_by=blocked_by(avoid, category),
         )
+
+
+class FragranceStore:
+    """향수 카탈로그 Chroma 색인. 검색(search)은 2단계 scent_matcher에서 붙인다."""
+
+    def __init__(self, settings: Settings | None = None) -> None:
+        self.settings = settings or get_settings()
+        self.catalog = load_fragrance_catalog()
+        self._client = chromadb.PersistentClient(path=str(chroma_dir(self.settings)))
+        self._embed = _EmbeddingClient(self.settings)
+
+    def collection(self):
+        return self._client.get_or_create_collection(
+            name=COLLECTION_FRAGRANCES,
+            metadata={"hnsw:space": "cosine"},
+        )
+
+    def rebuild(self) -> int:
+        try:
+            self._client.delete_collection(COLLECTION_FRAGRANCES)
+        except Exception:  # noqa: BLE001
+            pass
+        col = self.collection()
+        rows = list(self.catalog.values())
+        texts = [embed_fragrance_text(r) for r in rows]
+        col.add(
+            ids=[r["item_id"] for r in rows],
+            documents=texts,
+            embeddings=self._embed.embed(texts),
+            metadatas=[fragrance_metadata_of(r) for r in rows],
+        )
+        return len(rows)
+
+    def count(self) -> int:
+        return self.collection().count()
 
 
 def _distance_to_score(distance: float) -> float:

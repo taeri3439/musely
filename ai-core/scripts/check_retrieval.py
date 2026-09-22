@@ -25,17 +25,19 @@ def main() -> int:
 
     problems: list[str] = []
 
+    # 카탈로그가 늘면 트러블 상위 k에 젤크림/선크림이 안 나온다.
+    # 필터 검증은 '탈락하지 않았는지'이므로 전 건을 가져온다.
     alcohol = store.search(
         skin_type="combination",
         concerns=["트러블"],
         avoid_ingredients=["알코올"],
-        k=12,
+        k=max(store.count(), 1),
     )
     ids = _ids(alcohol)
-    print(f"기피=알코올  → {ids}  relaxation={alcohol.relaxation_level}")
+    print(f"기피=알코올  → {len(ids)}건  relaxation={alcohol.relaxation_level}")
 
     if "p_007" not in ids:
-        problems.append("p_007(세틸알코올 젤크림)이 알코올 기피에서 탈락했다 — 불리언 필터 버그")
+        problems.append("p_007(세틸알코올 젤크림)이 알코올 기피에서 탈락했다")
     if "p_012" not in ids:
         problems.append("p_012(세틸알코올 선크림)이 알코올 기피에서 탈락했다")
     for bad in ("p_002", "p_005", "p_010"):

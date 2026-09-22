@@ -44,11 +44,11 @@ async def main() -> int:
         "current_actives": [],
     })
     print(f"기피=알코올 → {_ids(alcohol)}  relax={alcohol['relaxation_level']}  nodes={_nodes(alcohol)}")
-    if "p_007" not in _ids(alcohol):
-        problems.append("그래프 결과에 p_007이 없다")
     for bad in ("p_002", "p_005", "p_010"):
         if bad in _ids(alcohol):
             problems.append(f"그래프 결과에 에탄올 제품 {bad}가 있다")
+    if not _ids(alcohol):
+        problems.append("알코올 기피 검색이 0건이다")
     if "commentary" not in _nodes(alcohol):
         problems.append("후보가 있는데 commentary가 안 돌았다")
 

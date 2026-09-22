@@ -66,9 +66,14 @@ async def get_job(job_id: str) -> JobStatusResponse:
 async def health() -> HealthResponse:
     try:
         from app.graph.agents.ingredient_matcher import get_store
+        from app.retrieval.store import FragranceStore
 
-        n = get_store().count()
-        return HealthResponse(status="ok", indexed_counts={"cosmetic": n, "fragrance": 0})
+        n_cos = get_store().count()
+        n_frag = FragranceStore().count()
+        return HealthResponse(
+            status="ok",
+            indexed_counts={"cosmetic": n_cos, "fragrance": n_frag},
+        )
     except Exception:
         return HealthResponse(status="degraded", indexed_counts={"cosmetic": 0, "fragrance": 0})
 
