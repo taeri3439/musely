@@ -15,6 +15,13 @@ logger = logging.getLogger(__name__)
 def _fallback_summary(state: CurationState) -> str:
     n = len(state.get("candidates") or [])
     level = state.get("relaxation_level") or 0
+    track = state.get("track") or "cosmetic"
+    if track == "fragrance":
+        if level > 0:
+            summary = f"선호 계열에 딱 맞는 향이 적어서 조건을 일부 완화했고, {n}개를 골랐어요."
+        else:
+            summary = f"입력하신 계열·상황을 반영해 {n}개를 골랐어요."
+        return summary
     if level > 0:
         summary = f"조건에 딱 맞는 제품이 적어서 일부 조건을 완화했고, {n}개를 골랐어요."
     else:
@@ -48,6 +55,7 @@ async def commentary(state: CurationState) -> dict[str, Any]:
             candidates=candidates,
             cautions=state.get("cautions") or [],
             profile=state.get("profile") or {},
+            track=state.get("track") or "cosmetic",
         )
         summary = out.summary
         candidates = _apply_notes(candidates, out)

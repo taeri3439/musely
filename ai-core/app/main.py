@@ -96,7 +96,7 @@ async def run_job(job_id: str, req: OrchestrateRequest) -> None:
     _mark_running(job)
     try:
         state = await asyncio.wait_for(execute(req), timeout=settings.job_timeout_seconds)
-        empty = not state["candidates"]
+        empty = _job_empty(state, req.track)
         job.steps = steps_from_trace(
             state.get("trace") or [],
             empty=empty,
@@ -122,30 +122,70 @@ async def run_job(job_id: str, req: OrchestrateRequest) -> None:
         job.finished_at = _now()
 
 
-async def execute(req: OrchestrateRequest) -> dict:
-    if req.track == "fragrance":
-        profile = {
-            "preferred_scent_families": req.preferred_scent_families,
-            "occasion": req.occasion,
-        }
-        return await graph.ainvoke(empty_state(profile, "fragrance"))
-    if req.track == "both":
-        profile = {
-            "skin_type": req.skin_type,
-            "concerns": req.concerns,
-            "avoid_ingredients": req.avoid_ingredients,
-            "current_actives": req.current_actives,
-            "category": req.category,
-        }
-        return await graph.ainvoke(empty_state(profile, "cosmetic"))
-    profile = {
+def _cosmetic_profile(req: OrchestrateRequest) -> dict:
+    return {
         "skin_type": req.skin_type,
         "concerns": req.concerns,
         "avoid_ingredients": req.avoid_ingredients,
         "current_actives": req.current_actives,
         "category": req.category,
     }
-    return await graph.ainvoke(empty_state(profile, "cosmetic"))
+
+
+def _fragrance_profile(req: OrchestrateRequest) -> dict:
+    return {
+        "preferred_scent_families": req.preferred_scent_families,
+        "occasion": req.occasion,
+    }
+
+
+def _merge_summaries(cos: dict, frag: dict) -> str:
+    parts = [s.strip() for s in (cos.get("summary"), frag.get("summary")) if s and str(s).strip()]
+    if not parts:
+        return "조건에 맞는 제품을 찾지 못했어요."
+    return " ".join(parts) if len(parts) > 1 else parts[0]
+
+
+def _merge_both_states(cos: dict, frag: dict) -> dict:
+    cos_candidates = cos.get("candidates") or []
+    frag_candidates = frag.get("candidates") or []
+    blocked = list(
+        dict.fromkeys((cos.get("blocked_by") or []) + (frag.get("blocked_by") or []))
+    )
+    return {
+        "candidates": [],
+        "cosmetic_candidates": cos_candidates,
+        "fragrance_candidates": frag_candidates,
+        "cautions": cos.get("cautions") or [],
+        "relaxation_level": max(
+            cos.get("relaxation_level") or 0,
+            frag.get("relaxation_level") or 0,
+        ),
+        "blocked_by": blocked,
+        "summary": _merge_summaries(cos, frag),
+        "trace": (cos.get("trace") or []) + (frag.get("trace") or []),
+    }
+
+
+def _job_empty(state: dict, track: str) -> bool:
+    if track == "both":
+        return not (
+            (state.get("cosmetic_candidates") or [])
+            or (state.get("fragrance_candidates") or [])
+        )
+    return not (state.get("candidates") or [])
+
+
+async def execute(req: OrchestrateRequest) -> dict:
+    if req.track == "fragrance":
+        return await graph.ainvoke(empty_state(_fragrance_profile(req), "fragrance"))
+    if req.track == "both":
+        cos_state, frag_state = await asyncio.gather(
+            graph.ainvoke(empty_state(_cosmetic_profile(req), "cosmetic")),
+            graph.ainvoke(empty_state(_fragrance_profile(req), "fragrance")),
+        )
+        return _merge_both_states(cos_state, frag_state)
+    return await graph.ainvoke(empty_state(_cosmetic_profile(req), "cosmetic"))
 
 
 def _candidate_from_dict(c: dict, *, fragrance: bool) -> Candidate:
@@ -165,18 +205,28 @@ def _candidate_from_dict(c: dict, *, fragrance: bool) -> Candidate:
 
 
 def to_result(state: dict, *, track: str = "cosmetic") -> OrchestrateResult:
-    candidates = state.get("candidates") or []
-    is_fragrance = track == "fragrance"
-    cosmetic = [
-        _candidate_from_dict(c, fragrance=False)
-        for c in candidates
-        if not is_fragrance
-    ]
-    fragrance = [
-        _candidate_from_dict(c, fragrance=True)
-        for c in candidates
-        if is_fragrance
-    ]
+    if track == "both":
+        cosmetic = [
+            _candidate_from_dict(c, fragrance=False)
+            for c in state.get("cosmetic_candidates") or []
+        ]
+        fragrance = [
+            _candidate_from_dict(c, fragrance=True)
+            for c in state.get("fragrance_candidates") or []
+        ]
+    else:
+        candidates = state.get("candidates") or []
+        is_fragrance = track == "fragrance"
+        cosmetic = [
+            _candidate_from_dict(c, fragrance=False)
+            for c in candidates
+            if not is_fragrance
+        ]
+        fragrance = [
+            _candidate_from_dict(c, fragrance=True)
+            for c in candidates
+            if is_fragrance
+        ]
     return OrchestrateResult(
         summary=state.get("summary") or "조건에 맞는 제품을 찾지 못했어요.",
         cosmetic=cosmetic,

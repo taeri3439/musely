@@ -57,6 +57,9 @@ def steps_from_trace(
     """내부 노드명 → 화면 steps. commentary는 0건이면 skipped."""
     nodes = {row["node"] for row in trace}
     elapsed = {row["node"]: row.get("elapsed_ms") for row in trace}
+    if track == "both":
+        return _steps_both(trace, empty=empty)
+
     search_node = "scent_matcher" if track == "fragrance" else "ingredient_matcher"
     skip_conflict = track == "fragrance"
 
@@ -79,6 +82,56 @@ def steps_from_trace(
         one(StepKey.SEARCH, search_node),
         one(StepKey.CONFLICT, "conflict_checker", skipped=skip_conflict),
         one(StepKey.COMMENTARY, "commentary", skipped=empty),
+    ]
+
+
+def _steps_both(trace: list[dict[str, Any]], *, empty: bool) -> list[Step]:
+    nodes = {row["node"] for row in trace}
+    elapsed = {row["node"]: row.get("elapsed_ms") for row in trace}
+    search_done = "ingredient_matcher" in nodes and "scent_matcher" in nodes
+    search_ms = None
+    if search_done:
+        search_ms = (elapsed.get("ingredient_matcher") or 0) + (elapsed.get("scent_matcher") or 0)
+    conflict_skipped = "ingredient_matcher" in nodes and "conflict_checker" not in nodes
+    if conflict_skipped:
+        conflict_status = "skipped"
+        conflict_ms = None
+    elif "conflict_checker" in nodes:
+        conflict_status = "done"
+        conflict_ms = elapsed.get("conflict_checker")
+    else:
+        conflict_status = "pending"
+        conflict_ms = None
+    if empty:
+        commentary_status = "skipped"
+        commentary_ms = None
+    elif "commentary" in nodes:
+        commentary_status = "done"
+        commentary_ms = elapsed.get("commentary")
+    else:
+        commentary_status = "pending"
+        commentary_ms = None
+
+    return [
+        Step(key=StepKey.PROFILE, label=STEP_LABELS[StepKey.PROFILE], status="done"),
+        Step(
+            key=StepKey.SEARCH,
+            label=STEP_LABELS[StepKey.SEARCH],
+            status="done" if search_done else "pending",
+            elapsed_ms=search_ms,
+        ),
+        Step(
+            key=StepKey.CONFLICT,
+            label=STEP_LABELS[StepKey.CONFLICT],
+            status=conflict_status,
+            elapsed_ms=conflict_ms,
+        ),
+        Step(
+            key=StepKey.COMMENTARY,
+            label=STEP_LABELS[StepKey.COMMENTARY],
+            status=commentary_status,
+            elapsed_ms=commentary_ms,
+        ),
     ]
 
 
