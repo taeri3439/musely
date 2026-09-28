@@ -77,7 +77,12 @@ python -m scripts.e2e_jobs
 python -m scripts.run_weekly_checks
 ```
 
-`run_weekly_checks`는 `eval_recall` → `check_graph` → `e2e_jobs` 순서로 돌린다.
+`run_weekly_checks`는 `eval_recall` → `eval_qna` → `check_graph` → `e2e_jobs` 순서로 돌린다.
+
+QnA(`POST /qna`, 동기)는 추천 job과 별개다. 추천 요청은 답하지 않고 `redirect: "recommend"`로
+넘기고, 성분 조합 질문은 `conflict_rules.yaml`로, 나머지는 `data/faq.jsonl` 검색 근거 안에서만
+답한다. FAQ를 고치면 `python -m app.retrieval.index`로 다시 색인하고 `python -m scripts.eval_qna`로
+임계값(`app/qna/answer.py`의 `UNKNOWN_BELOW`)이 여전히 맞는지 확인한다.
 `e2e_jobs`는 TestClient로 POST/GET `/jobs`까지 검증한다(백그라운드 job 포함).
 
 Render mock과 로컬 job API는 아직 연결하지 않는다.

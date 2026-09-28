@@ -14,6 +14,7 @@ BASE = Path(__file__).resolve().parents[1]
 
 STEPS = [
     ("scripts.eval_recall", "Retrieval Recall@K"),
+    ("scripts.eval_qna", "QnA 의도·근거 정확도"),
     ("scripts.check_graph", "LangGraph cosmetic/fragrance/both"),
     ("scripts.e2e_jobs", "POST/GET /jobs E2E"),
 ]

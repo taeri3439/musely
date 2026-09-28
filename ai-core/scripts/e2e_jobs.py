@@ -18,8 +18,9 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.qna.store import FaqStore
 from app.retrieval.store import CosmeticStore, FragranceStore
-from app.schemas import JobStatus, JobStatusResponse, OrchestrateRequest
+from app.schemas import JobStatus, JobStatusResponse, OrchestrateRequest, QnaResponse
 
 POLL_INTERVAL_SEC = 0.4
 JOB_TIMEOUT_SEC = 120.0
@@ -71,15 +72,43 @@ CASES: list[dict[str, Any]] = [
 ]
 
 
+QNA_CASES: list[dict[str, Any]] = [
+    {"question": "레티놀 처음 쓰는데 매일 발라도 돼?", "intent": "faq"},
+    {"question": "레티놀이랑 BHA 같이 써도 돼요?", "intent": "pair"},
+    {"question": "건성인데 토너 추천해줘", "intent": "recommend"},
+    {"question": "오늘 서울 날씨 어때?", "intent": "unknown"},
+]
+
+
 def _ensure_index() -> None:
     cos = CosmeticStore()
     frag = FragranceStore()
+    faq = FaqStore()
     if cos.count() == 0:
         print("cosmetic 인덱스 rebuild...")
         cos.rebuild()
     if frag.count() == 0:
         print("fragrance 인덱스 rebuild...")
         frag.rebuild()
+    if faq.count() == 0:
+        print("faq 인덱스 rebuild...")
+        faq.rebuild()
+
+
+def _validate_qna(case: dict[str, Any], body: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    resp = QnaResponse.model_validate(body)
+    if resp.intent != case["intent"]:
+        errors.append(f"intent {resp.intent} != {case['intent']}")
+    if not resp.answer.strip():
+        errors.append("answer 비어 있음")
+    if resp.intent in ("faq", "pair") and not resp.sources:
+        errors.append("근거(sources) 없음")
+    if resp.intent == "pair" and not resp.cautions:
+        errors.append("pair인데 cautions 없음")
+    if resp.intent == "recommend" and resp.redirect != "recommend":
+        errors.append("recommend인데 redirect 없음")
+    return errors
 
 
 def _step_status(steps: list[dict], key: str) -> str | None:
@@ -197,6 +226,21 @@ def main() -> int:
             for e in errs:
                 print(f"    - {e}")
                 problems.append(f"{case_id}: {e}")
+
+        print()
+        for case in QNA_CASES:
+            resp = client.post("/qna", json={"question": case["question"]})
+            if resp.status_code != 200:
+                problems.append(f"qna {case['question']}: {resp.status_code} {resp.text}")
+                continue
+            body = resp.json()
+            errs = _validate_qna(case, body)
+            mark = "OK" if not errs else "FAIL"
+            print(f"[{mark}] qna {body['intent']:9} llm={body['usedLlm']}  {case['question']}")
+            print(f"      → {body['answer'][:80]}")
+            for e in errs:
+                print(f"    - {e}")
+                problems.append(f"qna {case['question']}: {e}")
 
     print()
     if problems:

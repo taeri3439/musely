@@ -129,25 +129,70 @@ async def generate_commentary(
         f"후보는 {n}개입니다. per_item도 {n}개여야 하고 item_id는 아래 목록과 같아야 합니다.\n"
         + json.dumps(payload, ensure_ascii=False)
     )
+    return await _call_json(
+        system=_system_for(track),
+        user=user,
+        model_cls=CommentaryOut,
+        schema_hint="summary, per_item[]",
+    )
+
+
+SYSTEM_QNA = """당신은 스킨케어·향수 질문에 짧게 답합니다. JSON만 출력하세요.
+키는 answer, used_ids입니다.
+
+- 아래 snippets(FAQ)에 있는 내용만 근거로 쓰세요. snippets에 없는 사실은 만들지 마세요.
+- snippets로 답할 수 없는 부분은 "그 부분은 확실히 말하기 어려워요"라고 쓰세요.
+- used_ids에는 실제로 근거로 쓴 snippet id만 넣으세요.
+- answer는 2~3문장, 존댓말(~요)로 씁니다.
+- 효능·안전은 "~할 수 있어요", "~라고 알려져 있어요"처럼 단정하지 말고 쓰세요.
+- 특정 제품명·브랜드를 추천하지 마세요.
+- 쓰지 말 것: 효과적입니다, 반드시, 무조건, 완벽, 최고.
+"""
+
+
+class QnaOut(BaseModel):
+    answer: str
+    used_ids: list[str]
+
+
+async def generate_qna_answer(*, question: str, snippets: list[dict[str, Any]]) -> QnaOut:
+    user = json.dumps({"question": question, "snippets": snippets}, ensure_ascii=False)
+    return await _call_json(
+        system=SYSTEM_QNA,
+        user=user,
+        model_cls=QnaOut,
+        schema_hint="answer, used_ids[]",
+        max_tokens=512,
+    )
+
+
+async def _call_json(
+    *,
+    system: str,
+    user: str,
+    model_cls: type[BaseModel],
+    schema_hint: str,
+    max_tokens: int = 1024,
+):
     last_err: Exception | None = None
     for attempt in range(2):
         try:
             msg = await _client_once().messages.create(
                 model=get_settings().llm_model,
-                max_tokens=1024,
-                system=_system_for(track),
+                max_tokens=max_tokens,
+                system=system,
                 messages=[{"role": "user", "content": user}],
             )
             text = msg.content[0].text
             start, end = text.find("{"), text.rfind("}")
             if start < 0 or end < 0:
                 raise ValueError("LLM 응답에 JSON이 없다")
-            return CommentaryOut.model_validate_json(text[start : end + 1])
+            return model_cls.model_validate_json(text[start : end + 1])
         except Exception as exc:  # noqa: BLE001 — 재시도 후 그대로 올린다
             last_err = exc
             if attempt == 0:
                 user = (
-                    "방금 응답이 JSON 스키마(summary, per_item[])와 맞지 않았습니다. "
+                    f"방금 응답이 JSON 스키마({schema_hint})와 맞지 않았습니다. "
                     "JSON만 다시 출력하세요.\n" + user
                 )
     assert last_err is not None

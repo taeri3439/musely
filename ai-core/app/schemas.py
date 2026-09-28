@@ -163,6 +163,33 @@ class JobStatusResponse(CamelModel):
     elapsed_ms: int
 
 
+# --------------------------------------------------------------------------
+# QnA — 추천 job과 별개인 동기 API. 추천 요청은 답하지 않고 redirect로 넘긴다.
+# --------------------------------------------------------------------------
+
+
+class QnaRequest(CamelModel):
+    question: str = Field(min_length=1, max_length=300)
+
+
+class QnaSource(CamelModel):
+    kind: Literal["faq", "rule"]
+    id: str
+    title: str  # faq면 원 질문, rule이면 "레티놀·BHA"
+    source: str
+    score: float | None = None  # faq만. 0~100
+    confidence: Literal["low", "medium", "high"] | None = None  # rule만
+
+
+class QnaResponse(CamelModel):
+    intent: Literal["faq", "pair", "recommend", "unknown"]
+    answer: str
+    sources: list[QnaSource] = []
+    cautions: list[Caution] = []  # pair면 추천 화면과 같은 주의 카드로 그린다
+    redirect: Literal["recommend"] | None = None
+    used_llm: bool = False
+
+
 class HealthResponse(CamelModel):
     status: Literal["ok", "degraded"]
     indexed_counts: dict[str, int] = Field(default_factory=dict)

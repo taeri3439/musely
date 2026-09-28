@@ -22,6 +22,8 @@ from app.schemas import (
     JobStatusResponse,
     OrchestrateRequest,
     OrchestrateResult,
+    QnaRequest,
+    QnaResponse,
     Step,
     StepKey,
     STEP_LABELS,
@@ -63,20 +65,49 @@ async def get_job(job_id: str) -> JobStatusResponse:
     )
 
 
+@app.post("/qna", response_model=QnaResponse)
+async def qna(req: QnaRequest) -> QnaResponse:
+    from app.qna.answer import answer_question
+
+    try:
+        out = await asyncio.wait_for(
+            answer_question(req.question.strip()),
+            timeout=settings.job_timeout_seconds,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            504,
+            detail={"code": ErrorCode.TIMEOUT.value, "message": "답변 생성이 시간 안에 끝나지 않았습니다"},
+        )
+    except Exception:
+        logger.exception("qna failed")
+        raise HTTPException(
+            500,
+            detail={"code": ErrorCode.INTERNAL.value, "message": "내부 오류가 발생했습니다"},
+        )
+    return QnaResponse.model_validate(out.__dict__)
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     try:
         from app.graph.agents.ingredient_matcher import get_store
+        from app.qna.answer import get_faq_store
         from app.retrieval.store import FragranceStore
 
-        n_cos = get_store().count()
-        n_frag = FragranceStore().count()
         return HealthResponse(
             status="ok",
-            indexed_counts={"cosmetic": n_cos, "fragrance": n_frag},
+            indexed_counts={
+                "cosmetic": get_store().count(),
+                "fragrance": FragranceStore().count(),
+                "faq": get_faq_store().count(),
+            },
         )
     except Exception:
-        return HealthResponse(status="degraded", indexed_counts={"cosmetic": 0, "fragrance": 0})
+        return HealthResponse(
+            status="degraded",
+            indexed_counts={"cosmetic": 0, "fragrance": 0, "faq": 0},
+        )
 
 
 def _mark_running(job) -> None:

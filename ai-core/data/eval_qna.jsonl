@@ -1,0 +1,26 @@
+{"question": "레티놀 처음 쓰는데 매일 발라도 돼?", "expect_intent": "faq", "expect_source": "faq_002"}
+{"question": "레티놀 바르고 나서 자외선 차단제 필요해?", "expect_intent": "faq", "expect_source": "faq_003"}
+{"question": "각질 제거하는 산 성분 종류끼리 차이가 뭐야", "expect_intent": "faq", "expect_source": "faq_004"}
+{"question": "AHA랑 BHA 뭐가 달라요?", "expect_intent": "faq", "expect_source": "faq_004"}
+{"question": "비타민C 세럼 색이 갈색으로 변했어요", "expect_intent": "faq", "expect_source": "faq_006"}
+{"question": "세틸알코올 들어간 크림은 알코올 프리 아닌가요?", "expect_intent": "faq", "expect_source": "faq_009"}
+{"question": "무향 제품이면 향료가 없는 거죠?", "expect_intent": "faq", "expect_source": "faq_010"}
+{"question": "모공이 넓은데 무슨 성분이 도움돼?", "expect_intent": "faq", "expect_source": "faq_005"}
+{"question": "T존만 번들거리고 볼은 건조해요", "expect_intent": "faq", "expect_source": "faq_014"}
+{"question": "세라마이드 크림은 왜 쓰는 거예요", "expect_intent": "faq", "expect_source": "faq_017"}
+{"question": "선크림 몇 시간마다 다시 발라요?", "expect_intent": "faq", "expect_source": "faq_019"}
+{"question": "오드퍼퓸이랑 오드뚜왈렛 차이", "expect_intent": "faq", "expect_source": "faq_020"}
+{"question": "향수 잔향이 금방 날아가요", "expect_intent": "faq", "expect_source": "faq_022"}
+{"question": "회사에서 뿌리기 무난한 향 계열이 있을까요?", "expect_intent": "faq", "expect_source": "faq_023"}
+{"question": "결과 화면에 일부 조건을 완화했다는 문구가 떠요", "expect_intent": "faq", "expect_source": "faq_025"}
+{"question": "카드에 있는 숫자 게이지는 뭐예요", "expect_intent": "faq", "expect_source": "faq_026"}
+{"question": "레티놀이랑 BHA 같이 써도 돼요?", "expect_intent": "pair", "expect_source": "retinol_bha"}
+{"question": "비타민C랑 나이아신아마이드 섞어 쓰면 안 되나요?", "expect_intent": "pair", "expect_source": "niacinamide_vitamin_c"}
+{"question": "레티놀하고 벤조일퍼옥사이드 동시에 발라도 되나요", "expect_intent": "pair", "expect_source": "retinol_benzoyl_peroxide"}
+{"question": "나이아신아마이드랑 BHA 함께 써도 돼?", "expect_intent": "pair", "expect_source": null}
+{"question": "건성인데 토너 추천해줘", "expect_intent": "recommend", "expect_source": null}
+{"question": "모공에 좋은 세럼 뭐 사야 돼?", "expect_intent": "recommend", "expect_source": null}
+{"question": "오피스용 향수 골라줘", "expect_intent": "recommend", "expect_source": null}
+{"question": "오늘 서울 날씨 어때?", "expect_intent": "unknown", "expect_source": null}
+{"question": "주식 투자는 어떻게 시작해요?", "expect_intent": "unknown", "expect_source": null}
+{"question": "파이썬 리스트 정렬하는 법 알려줘", "expect_intent": "unknown", "expect_source": null}
