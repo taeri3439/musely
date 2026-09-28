@@ -24,3 +24,29 @@
 {"question": "오늘 서울 날씨 어때?", "expect_intent": "unknown", "expect_source": null}
 {"question": "주식 투자는 어떻게 시작해요?", "expect_intent": "unknown", "expect_source": null}
 {"question": "파이썬 리스트 정렬하는 법 알려줘", "expect_intent": "unknown", "expect_source": null}
+{"question": "비타민A가 피부 결에 무슨 작용을 해?", "expect_intent": "faq", "expect_source": "faq_001"}
+{"question": "순수 비타민씨 뚜껑 열어두면 변질돼?", "expect_intent": "faq", "expect_source": "faq_006"}
+{"question": "아스코빅애씨드는 낮 루틴에 넣는 거야?", "expect_intent": "faq", "expect_source": "faq_007"}
+{"question": "비타민B3 함량 높으면 따가울 수 있어?", "expect_intent": "faq", "expect_source": "faq_008"}
+{"question": "아로마 오일 때문에 얼굴이 가려워요", "expect_intent": "faq", "expect_source": "faq_011"}
+{"question": "보존제 파라벤은 왜 논란이 있어요?", "expect_intent": "faq", "expect_source": "faq_012"}
+{"question": "처음 쓰는 앰플 팔 안쪽에 먼저 발라봐도 돼?", "expect_intent": "faq", "expect_source": "faq_013"}
+{"question": "자극 잘 받는 피부는 향부터 빼는 게 나아?", "expect_intent": "faq", "expect_source": "faq_015"}
+{"question": "속은 땅기는데 표면은 번들번들해요", "expect_intent": "faq", "expect_source": "faq_016"}
+{"question": "붉은기 있을 때 센텔라 추출물 어때요", "expect_intent": "faq", "expect_source": "faq_018"}
+{"question": "향수 카드 피라미드에서 맨 위 향이랑 맨 아래 향이 달라요", "expect_intent": "faq", "expect_source": "faq_021"}
+{"question": "샌달우드 느낌이랑 깨끗한 비누향은 어느 계열이야", "expect_intent": "faq", "expect_source": "faq_024"}
+{"question": "주의 카드에 근거가 약하다고 적힌 이유가 뭐야", "expect_intent": "faq", "expect_source": "faq_027"}
+{"question": "지방알코올이랑 에탄올은 같은 성분인가요", "expect_intent": "faq", "expect_source": "faq_009"}
+{"question": "모공에 도움되는 성분만 알려줘", "expect_intent": "faq", "expect_source": "faq_005"}
+{"question": "레티놀이랑 비타민C는 뭐가 달라?", "expect_intent": "faq", "expect_source": "faq_001"}
+{"question": "AHA랑 레티놀 같이 발라도 돼?", "expect_intent": "pair", "expect_source": "retinol_aha"}
+{"question": "비타민C하고 레티놀 충돌나?", "expect_intent": "pair", "expect_source": "retinol_vitamin_c"}
+{"question": "AHA랑 비타민씨 레이어링 해도 돼?", "expect_intent": "pair", "expect_source": "aha_vitamin_c"}
+{"question": "글리콜산이랑 살리실산 동시에 써도 돼?", "expect_intent": "pair", "expect_source": null}
+{"question": "복합성용 수분 크림 추천 부탁해", "expect_intent": "recommend", "expect_source": null}
+{"question": "향수 하나 골라 주세요", "expect_intent": "recommend", "expect_source": null}
+{"question": "모공에는 뭐 바르면 좋아?", "expect_intent": "recommend", "expect_source": null}
+{"question": "지하철 몇 호선이 제일 덜 막혀?", "expect_intent": "unknown", "expect_source": null}
+{"question": "영어 단어 외우는 법 알려줘", "expect_intent": "unknown", "expect_source": null}
+{"question": "에어프라이어 예열해야 해?", "expect_intent": "unknown", "expect_source": null}
