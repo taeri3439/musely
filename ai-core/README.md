@@ -73,7 +73,12 @@ GEMINI_API_KEY=...
 
 ```bat
 python -m scripts.check_graph
+python -m scripts.e2e_jobs
+python -m scripts.run_weekly_checks
 ```
+
+`run_weekly_checks`는 `eval_recall` → `check_graph` → `e2e_jobs` 순서로 돌린다.
+`e2e_jobs`는 TestClient로 POST/GET `/jobs`까지 검증한다(백그라운드 job 포함).
 
 Render mock과 로컬 job API는 아직 연결하지 않는다.
 

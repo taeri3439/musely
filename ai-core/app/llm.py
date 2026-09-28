@@ -129,14 +129,26 @@ async def generate_commentary(
         f"후보는 {n}개입니다. per_item도 {n}개여야 하고 item_id는 아래 목록과 같아야 합니다.\n"
         + json.dumps(payload, ensure_ascii=False)
     )
-    msg = await _client_once().messages.create(
-        model=get_settings().llm_model,
-        max_tokens=1024,
-        system=_system_for(track),
-        messages=[{"role": "user", "content": user}],
-    )
-    text = msg.content[0].text
-    start, end = text.find("{"), text.rfind("}")
-    if start < 0 or end < 0:
-        raise ValueError("LLM 응답에 JSON이 없다")
-    return CommentaryOut.model_validate_json(text[start : end + 1])
+    last_err: Exception | None = None
+    for attempt in range(2):
+        try:
+            msg = await _client_once().messages.create(
+                model=get_settings().llm_model,
+                max_tokens=1024,
+                system=_system_for(track),
+                messages=[{"role": "user", "content": user}],
+            )
+            text = msg.content[0].text
+            start, end = text.find("{"), text.rfind("}")
+            if start < 0 or end < 0:
+                raise ValueError("LLM 응답에 JSON이 없다")
+            return CommentaryOut.model_validate_json(text[start : end + 1])
+        except Exception as exc:  # noqa: BLE001 — 재시도 후 그대로 올린다
+            last_err = exc
+            if attempt == 0:
+                user = (
+                    "방금 응답이 JSON 스키마(summary, per_item[])와 맞지 않았습니다. "
+                    "JSON만 다시 출력하세요.\n" + user
+                )
+    assert last_err is not None
+    raise last_err

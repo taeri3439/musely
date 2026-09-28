@@ -31,17 +31,38 @@ def _fallback_summary(state: CurationState) -> str:
     return summary
 
 
-def _apply_notes(candidates: list[dict[str, Any]], out: CommentaryOut) -> list[dict[str, Any]]:
-    """후보에 있는 item_id만 note를 덮는다. 없는 id는 환각이므로 버린다."""
+def _apply_notes(
+    candidates: list[dict[str, Any]],
+    out: CommentaryOut,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """LLM note를 덮는다. 빠진 id·빈 note·목록 밖 id는 템플릿 note를 유지한다."""
     allowed = {c["item_id"] for c in candidates}
-    notes = {item.item_id: item.note for item in out.per_item if item.item_id in allowed}
+    notes = {
+        item.item_id: item.note.strip()
+        for item in out.per_item
+        if item.item_id in allowed and (item.note or "").strip()
+    }
+    warnings: list[str] = []
+    if len(out.per_item) != len(candidates):
+        warnings.append(
+            f"per_item {len(out.per_item)}개 != 후보 {len(candidates)}개 — 빠진 카드는 템플릿 note 유지"
+        )
+    for item in out.per_item:
+        if item.item_id not in allowed:
+            warnings.append(f"per_item에 없는 id {item.item_id!r} — 무시")
+        elif item.item_id in allowed and not (item.note or "").strip():
+            warnings.append(f"{item.item_id} note가 비어 있음 — 템플릿 note 유지")
+
     updated = []
     for c in candidates:
         row = dict(c)
-        if row["item_id"] in notes:
-            row["note"] = notes[row["item_id"]]
+        iid = row["item_id"]
+        if iid in notes:
+            row["note"] = notes[iid]
+        elif iid not in notes and iid in allowed:
+            warnings.append(f"{iid} per_item 누락 — 템플릿 note 유지")
         updated.append(row)
-    return updated
+    return updated, warnings
 
 
 async def commentary(state: CurationState) -> dict[str, Any]:
@@ -57,8 +78,10 @@ async def commentary(state: CurationState) -> dict[str, Any]:
             profile=state.get("profile") or {},
             track=state.get("track") or "cosmetic",
         )
-        summary = out.summary
-        candidates = _apply_notes(candidates, out)
+        summary = (out.summary or "").strip() or _fallback_summary(state)
+        candidates, note_warnings = _apply_notes(candidates, out)
+        for w in note_warnings:
+            logger.warning("commentary note: %s", w)
         used_llm = True
     except Exception:
         logger.exception("commentary LLM 실패, 템플릿으로 폴백")
